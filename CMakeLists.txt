@@ -34,7 +34,9 @@ catkin_package(
 )
 
 add_executable(${PROJECT_NAME} src/sr.cpp src/dev_sr.cpp)
+add_dependencies(${PROJECT_NAME} ${PROJECT_NAME}_gencfg)
 target_link_libraries(${PROJECT_NAME} ${catkin_LIBRARIES} mesasr)
 
 add_executable(image_publisher_sr apps/main_image_publisher_sr.cpp)
+add_dependencies(image_publisher_sr ${PROJECT_NAME}_gencfg)
 target_link_libraries(image_publisher_sr ${catkin_LIBRARIES})
