@@ -1,12 +1,12 @@
 // $Id: sr.cpp 39414 2012-05-10 19:52:30Z pbeeson $
 
 /*
- * Copyright (c) 2010 TRACLabs Inc. 
+ * Copyright (c) 2010 TRACLabs Inc.
  * This node uses the libmesasr API to support both SR 3000 and 4000
  * devices.  It extends the 2008 ROS swissranger (3000 only) node that
  * used the older libUSB API.  This verison also works with ros-core
  * >= v0.9.
- * Author: Patrick Beeson (pbeeson@traclabs.com) 
+ * Author: Patrick Beeson (pbeeson@traclabs.com)
  *
  * Copyright (c) 2008, Willow Garage, Inc.
  * All rights reserved.
@@ -80,7 +80,7 @@ entire image pipeline, so some image normalization is provided.
  - \b camera/camera_info topic (sensor_msgs/CameraInfo) Calibration
    information for each timestep.
 
- 
+
 @par Subscribes
 
  - None
@@ -133,11 +133,11 @@ class SRNode
 {
 private:
   ros::NodeHandle nh_;
-  image_transport::ImageTransport it_d_, it_i_, it_c_;
+  image_transport::ImageTransport it_d_, it_i_, it_c_, it_depth_;
   //std::string frame_id_;
   std::string camera_name_;
   std::string ether_addr_;
-  sensor_msgs::Image image_d_, image_i_, image_c_, image_d16_;
+  sensor_msgs::Image image_d_, image_i_, image_c_, image_d16_, image_depth_;
   sensor_msgs::PointCloud cloud_;
   sensor_msgs::PointCloud2 cloud2_;
   sensor_msgs::CameraInfo cam_info_;
@@ -154,6 +154,7 @@ private:
   image_transport::Publisher image_pub_i_;
   image_transport::Publisher image_pub_c_;
   image_transport::Publisher image_pub_d16_;
+  image_transport::Publisher image_pub_depth_;
   ros::Publisher cloud_pub_;
   ros::Publisher cloud_pub2_;
 
@@ -170,7 +171,7 @@ private:
 public:
   static sr::SR* dev_;
 
-  SRNode(const ros::NodeHandle& nh): nh_(nh), it_d_(nh), it_i_(nh), it_c_(nh)
+  SRNode(const ros::NodeHandle& nh): nh_(nh), it_d_(nh), it_i_(nh), it_c_(nh), it_depth_(nh)
   {
     signal(SIGSEGV, &sigsegv_handler);
 
@@ -179,6 +180,7 @@ public:
     image_pub_i_ = it_i_.advertise("intensity/image_raw", 1);
     image_pub_c_ = it_c_.advertise("confidence/image_raw", 1);
     image_pub_d16_ = it_c_.advertise("distance/image_raw16", 1);
+    image_pub_depth_ = it_d_.advertise("depth/image_raw", 1);
     cloud_pub_ = nh_.advertise<sensor_msgs::PointCloud>("pointcloud_raw", 1);
     cloud_pub2_ = nh_.advertise<sensor_msgs::PointCloud2>("pointcloud2_raw", 1);
 
@@ -198,7 +200,7 @@ public:
       }
 
     getInitParams();
-  } 
+  }
 
   ~SRNode()
   {
@@ -350,10 +352,10 @@ public:
 
         // get current CameraInfo data
         cam_info_ = cinfo_->getCameraInfo();
-        cloud2_.header.frame_id = cloud_.header.frame_id = 
-	  image_d_.header.frame_id = image_i_.header.frame_id = 
-	  image_c_.header.frame_id = image_d16_.header.frame_id = 
-	  cam_info_.header.frame_id = camera_name_;//config_.frame_id;
+        cloud2_.header.frame_id = cloud_.header.frame_id =
+	  image_d_.header.frame_id = image_i_.header.frame_id =
+	  image_c_.header.frame_id = image_d16_.header.frame_id =
+	  cam_info_.header.frame_id  = image_depth_.header.frame_id = camera_name_;//config_.frame_id;
 
         if(!device_open_)
           {
@@ -365,7 +367,7 @@ public:
                     ROS_INFO_STREAM("[" << camera_name_ << "] Connected to device with ID: "
                                     << dev_->device_id_);
                     ROS_INFO_STREAM("[" << camera_name_ << "] libmesasr version: " << dev_->lib_version_);
-                    device_open_ = true; 
+                    device_open_ = true;
                   }
                 else
                   {
@@ -384,8 +386,8 @@ public:
             try
               {
                 // Read data from the Camera
-                dev_->readData(cloud_,cloud2_,image_d_, image_i_, image_c_, image_d16_);
- 
+                dev_->readData(cloud_,cloud2_,image_d_, image_i_, image_c_, image_d16_, image_depth_);
+
                 cam_info_.header.stamp = image_d_.header.stamp;
                 cam_info_.height = image_d_.height;
                 cam_info_.width = image_d_.width;
@@ -401,6 +403,8 @@ public:
                   image_pub_c_.publish(image_c_);
                 if (image_pub_d16_.getNumSubscribers() > 0)
                   image_pub_d16_.publish(image_d16_);
+                if (image_pub_depth_.getNumSubscribers() > 0)
+                  image_pub_depth_.publish(image_depth_);
                 if (cloud_pub_.getNumSubscribers() > 0)
                   cloud_pub_.publish (cloud_);
                 if (cloud_pub2_.getNumSubscribers() > 0)

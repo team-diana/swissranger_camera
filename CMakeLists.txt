@@ -1,9 +1,14 @@
 cmake_minimum_required(VERSION 2.8.3)
 project(swissranger_camera)
 set(CMAKE_BUILD_TYPE RelWithDebInfo)
-find_package(catkin REQUIRED COMPONENTS cmake_modules roscpp tf camera_info_manager image_transport dynamic_reconfigure driver_base sensor_msgs cv_bridge)
+find_package(catkin REQUIRED COMPONENTS
+  cmake_modules roscpp tf camera_info_manager image_transport
+  dynamic_reconfigure driver_base sensor_msgs cv_bridge
+  nodelet)
 
 find_package(OpenCV REQUIRED)
+find_package(Boost REQUIRED COMPONENTS signals thread)
+
 include_directories(${OpenCV_INCLUDE_DIRS})
 link_directories(${OpenCV_LIB_DIR})
 add_definitions(${OpenCV_DEFINITIONS})
@@ -44,6 +49,16 @@ target_link_libraries(image_publisher_sr ${catkin_LIBRARIES})
 add_executable(intrinsics_params_extractor src/intrinsics_params_extractor.cpp)
 target_link_libraries(intrinsics_params_extractor ${OpenCV_LIBRARIES} mesasr)
 
+add_executable(depth_view src/depth_view.cpp)
+target_link_libraries(depth_view ${catkin_LIBRARIES})
+
+add_library(depth_view_nodelet src/nodelets/image_nodelet.cpp src/nodelets/window_thread.cpp)
+
+target_link_libraries(depth_view_nodelet ${catkin_LIBRARIES}
+                                 ${OpenCV_LIBRARIES}
+                                 ${Boost_LIBRARIES}
+)
+
 
 install(TARGETS ${PROJECT_NAME}
         DESTINATION ${CATKIN_PACKAGE_BIN_DESTINATION}
@@ -55,4 +70,16 @@ install(TARGETS image_publisher_sr
 
 install(TARGETS intrinsics_params_extractor
         DESTINATION ${CATKIN_PACKAGE_BIN_DESTINATION}
+)
+
+install(TARGETS depth_view
+        DESTINATION ${CATKIN_PACKAGE_BIN_DESTINATION}
+)
+
+install(TARGETS depth_view_nodelet
+        DESTINATION ${CATKIN_PACKAGE_LIB_DESTINATION}
+)
+
+install(FILES nodelet_plugins.xml
+        DESTINATION ${CATKIN_PACKAGE_SHARE_DESTINATION}
 )

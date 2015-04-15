@@ -1,12 +1,12 @@
 // $Id: dev_sr.cpp 39413 2012-05-10 19:51:51Z pbeeson $
 
 /*
- * Copyright (c) 2010 TRACLabs Inc. 
+ * Copyright (c) 2010 TRACLabs Inc.
  * This node uses the libmesasr API to support both SR 3000 and 4000
  * devices.  It extends the 2008 ROS swissranger (3000 only) node that
  * used the older libUSB API.  This verison also works with ros-core
  * >= v0.9.
- * Author: Patrick Beeson (pbeeson@traclabs.com) 
+ * Author: Patrick Beeson (pbeeson@traclabs.com)
  *
  * Copyright (c) 2008, Willow Garage, Inc.
  * All rights reserved.
@@ -78,13 +78,13 @@ using namespace std;
 SR::SR(bool use_filter) : srCam_(NULL), imgEntryArray_(NULL), buffer_(NULL), use_filter_(use_filter)
 {}
 
-SR::~SR() 
+SR::~SR()
 {
   SafeCleanup();
 }
 
 
-int SR::open(int auto_exposure, int integration_time, 
+int SR::open(int auto_exposure, int integration_time,
                int modulation_freq, int amp_threshold, std::string &ether_addr) {
 
   // ---[ Open the camera ]---
@@ -97,14 +97,14 @@ int SR::open(int auto_exposure, int integration_time,
     }
   else
     res = SR_OpenUSB (&srCam_, 0); //returns the device ID used in
-			
+
   if (res <= 0)
     {
       SafeCleanup();
       SR_EXCEPT(sr::Exception, "Failed to open device!");
       return (-1);
     }
-  
+
   device_id_   = getDeviceString ();
   lib_version_ = getLibraryVersion ();
   // ---[ Get the number of rows, cols, ... ]---
@@ -118,16 +118,16 @@ int SR::open(int auto_exposure, int integration_time,
 
   ROS_INFO ("[SwissRanger device::open] Number of images available: %d", inr_);
 
-  if ( (cols_ != SR_COLS) || (rows_ != SR_ROWS) || 
+  if ( (cols_ != SR_COLS) || (rows_ != SR_ROWS) ||
        (inr_ < SR_IMAGES) || (imgEntryArray_ == 0) )
     {
       SafeCleanup();
-      SR_EXCEPT_ARGS(sr::Exception, 
-		     "Invalid data images: %d %dx%d images received from camera!\n Expected %d %dx%d images.", 
+      SR_EXCEPT_ARGS(sr::Exception,
+		     "Invalid data images: %d %dx%d images received from camera!\n Expected %d %dx%d images.",
 		     inr_, cols_, rows_, SR_IMAGES, SR_COLS, SR_ROWS);
       return (-1);
     }
-  
+
 
   if (auto_exposure >= 0)
     setAutoExposure(auto_exposure);
@@ -140,7 +140,7 @@ int SR::open(int auto_exposure, int integration_time,
 
   if (amp_threshold >=0 && amp_threshold != getAmplitudeThreshold())
     setAmplitudeThreshold(amp_threshold);
- 
+
 
   // Points array
   size_t buffer_size = rows_ * cols_ * 3 * sizeof (float);
@@ -152,8 +152,8 @@ int SR::open(int auto_exposure, int integration_time,
   zp_ = &yp_[rows_*cols_];
 
   return 0;
-  
-  
+
+
 }
 
 ////////////////////////////////////////////////////////////////////////////////
@@ -196,8 +196,9 @@ void SR::readData(sensor_msgs::PointCloud &cloud,
 		  sensor_msgs::Image &image_d,
 		  sensor_msgs::Image &image_i,
 		  sensor_msgs::Image &image_c,
-		  sensor_msgs::Image &image_d16) {
-  
+		  sensor_msgs::Image &image_d16,
+      sensor_msgs::Image &image_depth) {
+
   if (srCam_ == NULL) {
     SR_EXCEPT(sr::Exception, "Read attempted on NULL SwissRanger port!");
     return;
@@ -222,14 +223,23 @@ void SR::readData(sensor_msgs::PointCloud &cloud,
 
   size_t image_size = imgEntryArray_->width * imgEntryArray_->height ;
 
+  ImgEntry* imageEntries;
+  int imageNum;
+  imageNum = SR_GetImageList(srCam_, &imageEntries);
+
+//   for(int i = 0; i < imageNum; i++) {
+//     std::cout << "Image " << i << ": type: " << imageEntries[i].imgType <<  " dataType : " << imageEntries[i].dataType << endl;
+//   }
+//   std::cout << endl << endl;
+
   // Pointers to data
   uint8_t *distance_image   = (unsigned char*)SR_GetImage (srCam_, 0);
   uint8_t *intensity_image  = (unsigned char*)SR_GetImage (srCam_, 1);
   uint8_t *confidence_image = (unsigned char*)SR_GetImage (srCam_, 2);
-  
+
   // Points array
-  res = SR_CoordTrfFlt (srCam_, xp_, yp_, zp_, sizeof (float), 
-			sizeof (float), sizeof (float));  
+  res = SR_CoordTrfFlt (srCam_, xp_, yp_, zp_, sizeof (float),
+			sizeof (float), sizeof (float));
 
   cloud.points.resize(image_size);
   cloud.channels.resize (2);
@@ -291,6 +301,62 @@ void SR::readData(sensor_msgs::PointCloud &cloud,
   image_c.step=SR_COLS;
   image_c.data.resize (image_size);
 
+  image_depth.width  = SR_COLS;
+  image_depth.height = SR_ROWS;
+  image_depth.encoding  = "32FC1";
+  image_depth.step=SR_COLS*4;
+  image_depth.data.resize (image_size*4);
+
+  {
+    uint8_t iX[SR_IMAGE_SIZE_PX];
+    uint8_t iY[SR_IMAGE_SIZE_PX];
+
+    const uint16_t* iDist = (uint16_t*)SR_GetImage (srCam_, 0);
+
+    for(uint8_t y = 0; y < SR_ROWS; y++) {
+      for(uint8_t x = 0; x < SR_COLS; x++) {
+        iX[y*SR_COLS+x] = x;
+        iY[y*SR_COLS+x] = y;
+      }
+    }
+
+    float oX[SR_IMAGE_SIZE_PX];
+    float oY[SR_IMAGE_SIZE_PX];
+    float oZ[SR_IMAGE_SIZE_PX];
+
+    SR_CoordTrfPntFlt(srCam_, iX, iY, iDist, oX, oY, oZ, SR_IMAGE_SIZE_PX);
+    for(int i =0; i < SR_IMAGE_SIZE_PX; i++) {
+      float zerof = 0.0f;
+      unsigned char const * p = reinterpret_cast<unsigned char const *>(&oZ[i]);
+      for (std::size_t j = 0; j != sizeof(float); ++j)
+      {
+        image_depth.data[4*i+j] = p[j];
+      }
+    }
+
+//     // Mark center and print center distance
+//     std::vector<float> dists;
+//     for (int y = SR_ROWS/2 ; y <= SR_ROWS/2 + 1; y++) {
+//       for (int x = SR_COLS/2 ; x <= SR_COLS/2 + 1; x++) {
+//         int i = y*SR_COLS + x;
+//         image_depth.data[4*i + 0 ] = 0;
+//         image_depth.data[4*i + 1 ] = 0;
+//         image_depth.data[4*i + 2 ] = 0;
+//         image_depth.data[4*i + 3 ] = 0;
+//         dists.push_back(oZ[i]);
+//       }
+//     }
+//     float mean = 0;
+//     for(std::vector<float>::iterator it = dists.begin(); it != dists.end(); ++it) {
+//       mean += *it;
+//     }
+//     mean /= dists.size();
+//     cout << "distance at center is " << mean << "m" << endl;
+  }
+
+
+  cout << endl << endl;
+
   geometry_msgs::Point32 pt;
   uint count=0;
 
@@ -300,15 +366,16 @@ void SR::readData(sensor_msgs::PointCloud &cloud,
       //not provide a confidence image
       if (distance_image != 0x0)
         {
+          // TODO: ignore ID1, ID0 last bits see manual
           image_d.data[i] = ((distance_image[i * 2 + 0] << 0) + (distance_image[i * 2 + 1] << 8)) * (255 / 65535.0);
           image_d16.data[i * 2 + 0] = distance_image[i * 2 + 0];
           image_d16.data[i * 2 + 1] = distance_image[i * 2 + 1];
         }
 
-      if (intensity_image != 0x0) 
+      if (intensity_image != 0x0)
 	image_i.data[i] = ((intensity_image[i * 2 + 0] << 0) + (intensity_image[i * 2 + 1] << 8)) * (255 / 65535.0);
 
-      if (confidence_image != 0x0) 
+      if (confidence_image != 0x0)
 	image_c.data[i] = ((confidence_image[i * 2 + 0] << 0) + (confidence_image[i * 2 + 1] << 8)) * (255 / 65535.0);
 
       if (!use_filter_ || zp_[i] > 0.15) {
@@ -334,9 +401,9 @@ void SR::readData(sensor_msgs::PointCloud &cloud,
         memcpy (&cloud2.data[i * cloud2.point_step + 4], &bad_point, sizeof (float));
         memcpy (&cloud2.data[i * cloud2.point_step + 8], &bad_point, sizeof (float));
 	memcpy (&cloud2.data[i * cloud2.point_step + 12], &bad_point, sizeof (float));
-	memcpy (&cloud2.data[i * cloud2.point_step + 16], &bad_point, sizeof (float));	
+	memcpy (&cloud2.data[i * cloud2.point_step + 16], &bad_point, sizeof (float));
       }
-      
+
 
     }
 

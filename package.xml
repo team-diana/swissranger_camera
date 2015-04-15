@@ -9,13 +9,13 @@
     libusb API.  This driver uses the newer libmesasr API (>= 1.0)
     that can be found at http://www.mesa-imaging.ch/drivers.php.  This
     node is designed to work with the ROS image_pipeline with minimal
-    dependencies.  
+    dependencies.
 
     Note: A compile time flag at the top of include/swissranger.h is
     currently used to switch back and forth between supporting SR3000
     and SR4000/SR4500 devices.
 
-    This is a modified version of the original work from Radu B. Rusu 
+    This is a modified version of the original work from Radu B. Rusu
     and Patrick Beeson documented at http://wiki.ros.org/swissranger_camera.
   </description>
 
@@ -28,7 +28,7 @@
   <buildtool_depend>catkin</buildtool_depend>
 
   <build_depend>cmake_modules</build_depend>
-  
+
   <build_depend>ros</build_depend>
   <build_depend>roscpp</build_depend>
   <build_depend>image_transport</build_depend>
@@ -39,11 +39,11 @@
   <build_depend>image_common</build_depend>
   <build_depend>libmesasr</build_depend>
   <build_depend>pcl_ros</build_depend>
-  <build_depend>pcl_conversions</build_depend>  
+  <build_depend>pcl_conversions</build_depend>
   <build_depend>sensor_msgs</build_depend>
-  <build_depend>opencv2</build_depend> 
-  <build_depend>cv_bridge</build_depend> 
-  
+  <build_depend>opencv2</build_depend>
+  <build_depend>cv_bridge</build_depend>
+
   <run_depend>ros</run_depend>
   <run_depend>roscpp</run_depend>
   <run_depend>image_transport</run_depend>
@@ -57,10 +57,11 @@
   <run_depend>pcl_conversions</run_depend>
   <run_depend>sensor_msgs</run_depend>
   <run_depend>opencv2</run_depend>
-  <run_depend>cv_bridge</run_depend>  
-  
+  <run_depend>cv_bridge</run_depend>
 
-  <!-- The export tag contains other, unspecified, tags -->
+
   <export>
+    <nodelet plugin="nodelet_plugins.xml" />
   </export>
+
 </package>

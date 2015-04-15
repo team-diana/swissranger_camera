@@ -87,8 +87,6 @@ void printHelp(char** argv) {
   cout << " -e            show this help" << endl;
 }
 
-
-
 int main(int argc, char** argv) {
 
 
@@ -151,9 +149,11 @@ SRCAM srCam;
   cout << endl << "Results:" << endl;
 
   cout << "Camera Matrix: " << endl << endl;
-  cout << cameraMatrix << endl;
+  cout << cameraMatrix << endl << endl;
 
-  cout << "Distortion Coefficients: " << endl << endl;
-  cout << distCoeffs << endl;
+  cout << "Distortion Coefficients: " << endl;
+  cout << distCoeffs << endl << endl ;
 
+  SR_Close(srCam);
+  return 0;
 }
