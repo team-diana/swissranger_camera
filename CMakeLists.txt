@@ -28,7 +28,7 @@ generate_dynamic_reconfigure_options(cfg/SwissRanger.cfg)
 include_directories(include ${catkin_INCLUDE_DIRS} cfg/cpp)
 
 catkin_package(
-   INCLUDE_DIRS 
+   INCLUDE_DIRS
    LIBRARIES ${PROJECT_NAME}
    CATKIN_DEPENDS roscpp tf camera_info_manager image_transport dynamic_reconfigure driver_base
 )
@@ -40,3 +40,19 @@ target_link_libraries(${PROJECT_NAME} ${catkin_LIBRARIES} mesasr)
 add_executable(image_publisher_sr apps/main_image_publisher_sr.cpp)
 add_dependencies(image_publisher_sr ${PROJECT_NAME}_gencfg)
 target_link_libraries(image_publisher_sr ${catkin_LIBRARIES})
+
+add_executable(intrinsics_params_extractor src/intrinsics_params_extractor.cpp)
+target_link_libraries(intrinsics_params_extractor ${OpenCV_LIBRARIES} mesasr)
+
+
+install(TARGETS ${PROJECT_NAME}
+        DESTINATION ${CATKIN_PACKAGE_BIN_DESTINATION}
+)
+
+install(TARGETS image_publisher_sr
+        DESTINATION ${CATKIN_PACKAGE_BIN_DESTINATION}
+)
+
+install(TARGETS intrinsics_params_extractor
+        DESTINATION ${CATKIN_PACKAGE_BIN_DESTINATION}
+)
