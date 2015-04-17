@@ -217,8 +217,8 @@ void SR::readData(sensor_msgs::PointCloud &cloud,
     }
 
   double timestamp=(time1+time2)/2;
-  cloud.header.stamp=cloud2.header.stamp=image_d.header.stamp=image_d16.header.stamp=
-    image_i.header.stamp=image_c.header.stamp=ros::Time(timestamp);
+  cloud.header.stamp = cloud2.header.stamp = image_d.header.stamp = image_d16.header.stamp =
+    image_i.header.stamp = image_c.header.stamp = image_depth.header.stamp =ros::Time(timestamp);
 
 
   size_t image_size = imgEntryArray_->width * imgEntryArray_->height ;
@@ -353,9 +353,6 @@ void SR::readData(sensor_msgs::PointCloud &cloud,
 //     mean /= dists.size();
 //     cout << "distance at center is " << mean << "m" << endl;
   }
-
-
-  cout << endl << endl;
 
   geometry_msgs::Point32 pt;
   uint count=0;

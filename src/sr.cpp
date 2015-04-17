@@ -48,9 +48,14 @@
 #include <dynamic_reconfigure/server.h>
 #include <driver_base/SensorLevels.h>
 #include <driver_base/driver.h>
+#include <camera_calibration_parsers/parse_ini.h>
 
 #include <sr.h>
 #include <swissranger_camera/SwissRangerConfig.h>
+
+#include <iostream>
+#include <fstream>
+
 /** @file
 
 @brief swissranger_camera is a ROS driver for Mesa Imaging SwissRangercamera_name_
@@ -183,6 +188,8 @@ public:
     image_pub_depth_ = it_d_.advertise("depth/image_raw", 1);
     cloud_pub_ = nh_.advertise<sensor_msgs::PointCloud>("pointcloud_raw", 1);
     cloud_pub2_ = nh_.advertise<sensor_msgs::PointCloud2>("pointcloud2_raw", 1);
+
+
 
     // set reconfigurable parameter defaults (all to automatic)
     // None right now
@@ -346,12 +353,32 @@ public:
   /** Main driver loop */
   bool spin()
   {
+    cam_info_ = sensor_msgs::CameraInfo();
+
+    char cwd[2048];
+    std::string calibrationFilename = "sr4500.ini";
+    if(getcwd(cwd, sizeof(cwd)) != NULL) {
+      ROS_INFO("Searching intrinsics %s file in %s", calibrationFilename.c_str(),  cwd);
+    }
+    std::string cameraName = "sr4500";
+    std::ifstream fin(calibrationFilename.c_str());
+    if(fin.is_open()) {
+      ROS_INFO("loading calibraton file %s ", calibrationFilename.c_str());
+      if(!camera_calibration_parsers::readCalibrationIni(calibrationFilename, cameraName, cam_info_)) {
+        ROS_INFO("error while reading calibraton file %s ", calibrationFilename.c_str());
+      }
+    } else {
+      ROS_WARN("calibraton file %s not found", calibrationFilename.c_str());
+    }
+    fin.close();
+
+    cinfo_->setCameraInfo(cam_info_);
+
     while (nh_.ok())
       {
         getParameters();                // check reconfigurable parameters
 
         // get current CameraInfo data
-        cam_info_ = cinfo_->getCameraInfo();
         cloud2_.header.frame_id = cloud_.header.frame_id =
 	  image_d_.header.frame_id = image_i_.header.frame_id =
 	  image_c_.header.frame_id = image_d16_.header.frame_id =

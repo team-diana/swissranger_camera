@@ -4,7 +4,7 @@ set(CMAKE_BUILD_TYPE RelWithDebInfo)
 find_package(catkin REQUIRED COMPONENTS
   cmake_modules roscpp tf camera_info_manager image_transport
   dynamic_reconfigure driver_base sensor_msgs cv_bridge
-  nodelet)
+  nodelet camera_calibration_parsers)
 
 find_package(OpenCV REQUIRED)
 find_package(Boost REQUIRED COMPONENTS signals thread)
