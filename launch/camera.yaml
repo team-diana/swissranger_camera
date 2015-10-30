@@ -1,0 +1,20 @@
+image_width: 176
+image_height: 144
+camera_name: SwissRanger
+camera_matrix:
+  rows: 3
+  cols: 3
+  data: [250.308548, 0, 89.16635599999999, 0, 250.314402, 70.029973, 0, 0, 1]
+distortion_model: plumb_bob
+distortion_coefficients:
+  rows: 1
+  cols: 5
+  data: [0, 0, 0, 0, 0]
+rectification_matrix:
+  rows: 3
+  cols: 3
+  data: [0, 0, 0, 0, 0, 0, 0, 0, 0]
+projection_matrix:
+  rows: 3
+  cols: 4
+  data: [0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0]

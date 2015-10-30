@@ -357,6 +357,7 @@ public:
 
     char cwd[2048];
     std::string calibrationFilename = "sr4500.ini";
+    ROS_INFO("Attempting to find %s", calibrationFilename.c_str());
     if(getcwd(cwd, sizeof(cwd)) != NULL) {
       ROS_INFO("Searching intrinsics %s file in %s", calibrationFilename.c_str(),  cwd);
     }

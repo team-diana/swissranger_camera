@@ -66,7 +66,7 @@ void getSRParams(SRCAM cam, Mat& cameraMatrix, Mat& distCoeffs, Mat& rvec, Mat& 
         cameraMatrix = Mat(3, 3, CV_64FC1, Scalar::all(0));
         double* _cm = (double*)cameraMatrix.ptr();
         _cm[0] = fabs(ax); _cm[2] = bx; _cm[4] = fabs(ay); _cm[5] = by; _cm[8]=1.0;
-        const int distCoeffsNum = 8;
+        const int distCoeffsNum = 5;
         distCoeffs = Mat(1, distCoeffsNum, CV_64FC1, Scalar::all(0));
         rvec = tvec = Mat(1, 3, CV_32FC1, Scalar::all(0));
 
@@ -75,7 +75,8 @@ void getSRParams(SRCAM cam, Mat& cameraMatrix, Mat& distCoeffs, Mat& rvec, Mat& 
         vector<vector<Vec2f> > _ip(1, imagePoints);
         vector<Mat> _rvec, _tvec;
         cout << "run camera calibration" << endl;
-        calibrateCamera(_op, _ip, Size(cols,rows), cameraMatrix, distCoeffs, _rvec, _tvec, CV_CALIB_USE_INTRINSIC_GUESS | CV_CALIB_RATIONAL_MODEL);
+//         calibrateCamera(_op, _ip, Size(cols,rows), cameraMatrix, distCoeffs, _rvec, _tvec, CV_CALIB_USE_INTRINSIC_GUESS | CV_CALIB_RATIONAL_MODEL);
+        calibrateCamera(_op, _ip, Size(cols,rows), cameraMatrix, distCoeffs, _rvec, _tvec, CV_CALIB_USE_INTRINSIC_GUESS);
         rvec = _rvec[0];
         tvec = _tvec[0];
 }
